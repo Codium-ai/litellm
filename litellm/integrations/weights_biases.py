@@ -1,4 +1,4 @@
-imported_openAIResponse=True
+imported_openAIResponse = True
 try:
     import io
     import logging
@@ -12,24 +12,20 @@ try:
     else:
         from typing_extensions import Literal, Protocol
 
-
     logger = logging.getLogger(__name__)
-
 
     K = TypeVar("K", bound=str)
     V = TypeVar("V")
 
-
-    class OpenAIResponse(Protocol[K, V]): # type: ignore
+    class OpenAIResponse(Protocol[K, V]):  # type: ignore
         # contains a (known) object attribute
         object: Literal["chat.completion", "edit", "text_completion"]
 
-        def __getitem__(self, key: K) -> V:
-            ...  # pragma: no cover
+        def __getitem__(self, key: K) -> V: ...  # noqa
 
-        def get(self, key: K, default: Optional[V] = None) -> Optional[V]:
-            ...  # pragma: no cover
-
+        def get(  # noqa
+            self, key: K, default: Optional[V] = None
+        ) -> Optional[V]: ...  # pragma: no cover
 
     class OpenAIRequestResponseResolver:
         def __call__(
@@ -44,7 +40,9 @@ try:
                 elif response["object"] == "text_completion":
                     return self._resolve_completion(request, response, time_elapsed)
                 elif response["object"] == "chat.completion":
-                    return self._resolve_chat_completion(request, response, time_elapsed)
+                    return self._resolve_chat_completion(
+                        request, response, time_elapsed
+                    )
                 else:
                     logger.info(f"Unknown OpenAI response object: {response['object']}")
             except Exception as e:
@@ -113,7 +111,8 @@ try:
             """Resolves the request and response objects for `openai.Completion`."""
             request_str = f"\n\n**Prompt**: {request['prompt']}\n"
             choices = [
-                f"\n\n**Completion**: {choice['text']}\n" for choice in response["choices"]
+                f"\n\n**Completion**: {choice['text']}\n"
+                for choice in response["choices"]
             ]
 
             return self._request_response_result_to_trace(
@@ -167,53 +166,52 @@ try:
             ]
             trace = self.results_to_trace_tree(request, response, results, time_elapsed)
             return trace
-except:
-    imported_openAIResponse=False
 
+except Exception:
+    imported_openAIResponse = False
 
 
 #### What this does ####
 #    On success, logs events to Langfuse
-import dotenv, os
-import requests
-import requests
-from datetime import datetime
-
-dotenv.load_dotenv()  # Loading env variables using dotenv
 import traceback
+
 
 class WeightsBiasesLogger:
     # Class variables or attributes
     def __init__(self):
         try:
-            import wandb
-        except:
-            raise Exception("\033[91m wandb not installed, try running 'pip install wandb' to fix this error\033[0m")
-        if imported_openAIResponse==False:
-            raise Exception("\033[91m wandb not installed, try running 'pip install wandb' to fix this error\033[0m")
+            pass
+        except Exception:
+            raise Exception(
+                "\033[91m wandb not installed, try running 'pip install wandb' to fix this error\033[0m"
+            )
+        if imported_openAIResponse is False:
+            raise Exception(
+                "\033[91m wandb not installed, try running 'pip install wandb' to fix this error\033[0m"
+            )
         self.resolver = OpenAIRequestResponseResolver()
 
     def log_event(self, kwargs, response_obj, start_time, end_time, print_verbose):
         # Method definition
         import wandb
-        
+
         try:
-            print_verbose(
-                f"W&B Logging - Enters logging function for model {kwargs}"
-            )
+            print_verbose(f"W&B Logging - Enters logging function for model {kwargs}")
             run = wandb.init()
             print_verbose(response_obj)
 
-            trace = self.resolver(kwargs, response_obj, (end_time-start_time).total_seconds())
+            trace = self.resolver(
+                kwargs, response_obj, (end_time - start_time).total_seconds()
+            )
 
-            if trace is not None:
+            if trace is not None and run is not None:
                 run.log({"trace": trace})
 
-            run.finish()
-            print_verbose(
-                f"W&B Logging Logging - final response object: {response_obj}"
-            )
-        except:
-            # traceback.print_exc()
+            if run is not None:
+                run.finish()
+                print_verbose(
+                    f"W&B Logging Logging - final response object: {response_obj}"
+                )
+        except Exception:
             print_verbose(f"W&B Logging Layer Error - {traceback.format_exc()}")
             pass

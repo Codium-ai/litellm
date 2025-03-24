@@ -1,3 +1,6 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Perplexity AI (pplx-api)
 https://www.perplexity.ai
 
@@ -14,7 +17,7 @@ import os
 
 os.environ['PERPLEXITYAI_API_KEY'] = ""
 response = completion(
-    model="perplexity/mistral-7b-instruct", 
+    model="perplexity/sonar-pro", 
     messages=messages
 )
 print(response)
@@ -27,7 +30,7 @@ import os
 
 os.environ['PERPLEXITYAI_API_KEY'] = ""
 response = completion(
-    model="perplexity/mistral-7b-instruct", 
+    model="perplexity/sonar-pro", 
     messages=messages,
     stream=True
 )
@@ -38,17 +41,23 @@ for chunk in response:
 
 
 ## Supported Models
-All models listed here https://docs.perplexity.ai/docs/model-cards are supported
+All models listed here https://docs.perplexity.ai/docs/model-cards are supported.  Just do `model=perplexity/<model-name>`.
 
 | Model Name               | Function Call                                                                                                                                                      |
 |--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| codellama-34b-instruct | `completion(model="perplexity/codellama-34b-instruct", messages)` | 
-| llama-2-13b-chat | `completion(model="perplexity/llama-2-13b-chat", messages)` | 
-| llama-2-70b-chat | `completion(model="perplexity/llama-2-70b-chat", messages)` | 
-| mistral-7b-instruct | `completion(model="perplexity/mistral-7b-instruct", messages)` | 
-| replit-code-v1.5-3b | `completion(model="perplexity/replit-code-v1.5-3b", messages)` |
+| sonar-deep-research | `completion(model="perplexity/sonar-deep-research", messages)` | 
+| sonar-reasoning-pro | `completion(model="perplexity/sonar-reasoning-pro", messages)` | 
+| sonar-reasoning | `completion(model="perplexity/sonar-reasoning", messages)` | 
+| sonar-pro | `completion(model="perplexity/sonar-pro", messages)` | 
+| sonar | `completion(model="perplexity/sonar", messages)` | 
+| r1-1776 | `completion(model="perplexity/r1-1776", messages)` | 
 
 
 
 
 
+
+:::info
+
+For more information about passing provider-specific parameters, [go here](../completion/provider_specific_params.md)
+:::

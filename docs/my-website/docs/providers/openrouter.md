@@ -1,5 +1,5 @@
 # OpenRouter
-LiteLLM supports all the text models from [OpenRouter](https://openrouter.ai/docs)
+LiteLLM supports all the text / chat / vision models from [OpenRouter](https://openrouter.ai/docs)
 
 <a target="_blank" href="https://colab.research.google.com/github/BerriAI/litellm/blob/main/cookbook/LiteLLM_OpenRouter.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
@@ -10,9 +10,11 @@ LiteLLM supports all the text models from [OpenRouter](https://openrouter.ai/doc
 import os
 from litellm import completion
 os.environ["OPENROUTER_API_KEY"] = ""
+os.environ["OPENROUTER_API_BASE"] = "" # [OPTIONAL] defaults to https://openrouter.ai/api/v1
 
-os.environ["OR_SITE_URL"] = "" # optional
-os.environ["OR_APP_NAME"] = "" # optional
+
+os.environ["OR_SITE_URL"] = "" # [OPTIONAL]
+os.environ["OR_APP_NAME"] = "" # [OPTIONAL]
 
 response = completion(
             model="openrouter/google/palm-2-chat-bison",
@@ -20,10 +22,12 @@ response = completion(
         )
 ```
 
-### OpenRouter Completion Models
+## OpenRouter Completion Models
 
-| Model Name                | Function Call                                       | Required OS Variables                                        |
-|---------------------------|-----------------------------------------------------|--------------------------------------------------------------|
+🚨 LiteLLM supports ALL OpenRouter models, send `model=openrouter/<your-openrouter-model>` to send it to open router. See all openrouter models [here](https://openrouter.ai/models)
+
+| Model Name                | Function Call                                       |
+|---------------------------|-----------------------------------------------------|
 | openrouter/openai/gpt-3.5-turbo | `completion('openrouter/openai/gpt-3.5-turbo', messages)` | `os.environ['OR_SITE_URL']`,`os.environ['OR_APP_NAME']`,`os.environ['OPENROUTER_API_KEY']` |
 | openrouter/openai/gpt-3.5-turbo-16k | `completion('openrouter/openai/gpt-3.5-turbo-16k', messages)` | `os.environ['OR_SITE_URL']`,`os.environ['OR_APP_NAME']`,`os.environ['OPENROUTER_API_KEY']` |
 | openrouter/openai/gpt-4    | `completion('openrouter/openai/gpt-4', messages)`       | `os.environ['OR_SITE_URL']`,`os.environ['OR_APP_NAME']`,`os.environ['OPENROUTER_API_KEY']` |
@@ -35,3 +39,19 @@ response = completion(
 | openrouter/meta-llama/llama-2-13b-chat | `completion('openrouter/meta-llama/llama-2-13b-chat', messages)` | `os.environ['OR_SITE_URL']`,`os.environ['OR_APP_NAME']`,`os.environ['OPENROUTER_API_KEY']` |
 | openrouter/meta-llama/llama-2-70b-chat | `completion('openrouter/meta-llama/llama-2-70b-chat', messages)` | `os.environ['OR_SITE_URL']`,`os.environ['OR_APP_NAME']`,`os.environ['OPENROUTER_API_KEY']` |
 
+## Passing OpenRouter Params - transforms, models, route
+
+Pass `transforms`, `models`, `route`as arguments to `litellm.completion()`
+
+```python
+import os
+from litellm import completion
+os.environ["OPENROUTER_API_KEY"] = ""
+
+response = completion(
+            model="openrouter/google/palm-2-chat-bison",
+            messages=messages,
+            transforms = [""],
+            route= ""
+        )
+```

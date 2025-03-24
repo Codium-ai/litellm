@@ -1,10 +1,17 @@
 # Custom Callbacks
 
+:::info
+**For PROXY** [Go Here](../proxy/logging.md#custom-callback-class-async)
+::: 
+
+
 ## Callback Class
 You can create a custom callback class to precisely log events as they occur in litellm. 
 
 ```python
+import litellm
 from litellm.integrations.custom_logger import CustomLogger
+from litellm import completion, acompletion
 
 class MyCustomHandler(CustomLogger):
     def log_pre_api_call(self, model, messages, kwargs): 
@@ -13,22 +20,41 @@ class MyCustomHandler(CustomLogger):
     def log_post_api_call(self, kwargs, response_obj, start_time, end_time): 
         print(f"Post-API Call")
     
-    def log_stream_event(self, kwargs, response_obj, start_time, end_time):
-        print(f"On Stream")
-        
+
     def log_success_event(self, kwargs, response_obj, start_time, end_time): 
         print(f"On Success")
 
     def log_failure_event(self, kwargs, response_obj, start_time, end_time): 
         print(f"On Failure")
+    
+    #### ASYNC #### - for acompletion/aembeddings
+
+    async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
+        print(f"On Async Success")
+
+    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        print(f"On Async Failure")
 
 customHandler = MyCustomHandler()
 
 litellm.callbacks = [customHandler]
+
+## sync 
 response = completion(model="gpt-3.5-turbo", messages=[{ "role": "user", "content": "Hi 👋 - i'm openai"}],
                               stream=True)
 for chunk in response: 
     continue
+
+
+## async
+import asyncio 
+
+def async completion():
+    response = await acompletion(model="gpt-3.5-turbo", messages=[{ "role": "user", "content": "Hi 👋 - i'm openai"}],
+                              stream=True)
+    async for chunk in response: 
+        continue
+asyncio.run(completion())
 ```
 
 ## Callback Functions
@@ -85,6 +111,74 @@ print(response)
 
 ```
 
+## Async Callback Functions 
+
+We recommend using the Custom Logger class for async.
+
+```python
+from litellm.integrations.custom_logger import CustomLogger
+from litellm import acompletion 
+
+class MyCustomHandler(CustomLogger):
+    #### ASYNC #### 
+    
+
+
+    async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
+        print(f"On Async Success")
+
+    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        print(f"On Async Failure")
+
+import asyncio 
+customHandler = MyCustomHandler()
+
+litellm.callbacks = [customHandler]
+
+def async completion():
+    response = await acompletion(model="gpt-3.5-turbo", messages=[{ "role": "user", "content": "Hi 👋 - i'm openai"}],
+                              stream=True)
+    async for chunk in response: 
+        continue
+asyncio.run(completion())
+```
+
+**Functions**
+
+If you just want to pass in an async function for logging. 
+
+LiteLLM currently supports just async success callback functions for async completion/embedding calls. 
+
+```python
+import asyncio, litellm 
+
+async def async_test_logging_fn(kwargs, completion_obj, start_time, end_time):
+    print(f"On Async Success!")
+
+async def test_chat_openai():
+    try:
+        # litellm.set_verbose = True
+        litellm.success_callback = [async_test_logging_fn]
+        response = await litellm.acompletion(model="gpt-3.5-turbo",
+                              messages=[{
+                                  "role": "user",
+                                  "content": "Hi 👋 - i'm openai"
+                              }],
+                              stream=True)
+        async for chunk in response: 
+            continue
+    except Exception as e:
+        print(e)
+        pytest.fail(f"An error occurred - {str(e)}")
+
+asyncio.run(test_chat_openai())
+```
+
+:::info
+
+We're actively trying to expand this to other event types. [Tell us if you need this!](https://github.com/BerriAI/litellm/issues/1007)
+:::
+
 ## What's in kwargs? 
 
 Notice we pass in a kwargs argument to custom callback. 
@@ -132,6 +226,48 @@ Here's exactly what you can expect in the kwargs dictionary:
 "traceback_exception" = traceback_exception # the traceback generated via `traceback.format_exc()`
 "end_time" = end_time # datetime object of when call was completed
 ```
+
+
+### Cache hits
+
+Cache hits are logged in success events as `kwarg["cache_hit"]`. 
+
+Here's an example of accessing it: 
+
+  ```python
+  import litellm
+from litellm.integrations.custom_logger import CustomLogger
+from litellm import completion, acompletion, Cache
+
+class MyCustomHandler(CustomLogger):
+    async def async_log_success_event(self, kwargs, response_obj, start_time, end_time): 
+        print(f"On Success")
+        print(f"Value of Cache hit: {kwargs['cache_hit']"})
+
+async def test_async_completion_azure_caching():
+    customHandler_caching = MyCustomHandler()
+    litellm.cache = Cache(type="redis", host=os.environ['REDIS_HOST'], port=os.environ['REDIS_PORT'], password=os.environ['REDIS_PASSWORD'])
+    litellm.callbacks = [customHandler_caching]
+    unique_time = time.time()
+    response1 = await litellm.acompletion(model="azure/chatgpt-v-2",
+                            messages=[{
+                                "role": "user",
+                                "content": f"Hi 👋 - i'm async azure {unique_time}"
+                            }],
+                            caching=True)
+    await asyncio.sleep(1)
+    print(f"customHandler_caching.states pre-cache hit: {customHandler_caching.states}")
+    response2 = await litellm.acompletion(model="azure/chatgpt-v-2",
+                            messages=[{
+                                "role": "user",
+                                "content": f"Hi 👋 - i'm async azure {unique_time}"
+                            }],
+                            caching=True)
+    await asyncio.sleep(1) # success callbacks are done in parallel
+    print(f"customHandler_caching.states post-cache hit: {customHandler_caching.states}")
+    assert len(customHandler_caching.errors) == 0
+    assert len(customHandler_caching.states) == 4 # pre, post, success, success
+  ```
 
 ### Get complete streaming response
 
@@ -189,49 +325,25 @@ response = litellm.completion(model="gpt-3.5-turbo", messages=messages, metadata
 ## Examples
 
 ### Custom Callback to track costs for Streaming + Non-Streaming
+By default, the response cost is accessible in the logging object via `kwargs["response_cost"]` on success (sync + async)
 ```python
 
+# Step 1. Write your custom callback function
 def track_cost_callback(
     kwargs,                 # kwargs to completion
     completion_response,    # response from completion
     start_time, end_time    # start/end time
 ):
     try:
-        # init logging config
-        logging.basicConfig(
-                filename='cost.log',
-                level=logging.INFO,
-                format='%(asctime)s - %(message)s',
-                datefmt='%Y-%m-%d %H:%M:%S'
-        )
-
-        # check if it has collected an entire stream response
-        if "complete_streaming_response" in kwargs:
-            # for tracking streaming cost we pass the "messages" and the output_text to litellm.completion_cost 
-            completion_response=kwargs["complete_streaming_response"]
-            input_text = kwargs["messages"]
-            output_text = completion_response["choices"][0]["message"]["content"]
-            response_cost = litellm.completion_cost(
-                model = kwargs["model"],
-                messages = input_text,
-                completion=output_text
-            )
-            print("streaming response_cost", response_cost)
-            logging.info(f"Model {kwargs['model']} Cost: ${response_cost:.8f}")
-
-        # for non streaming responses
-        else:
-            # we pass the completion_response obj
-            if kwargs["stream"] != True:
-                response_cost = litellm.completion_cost(completion_response=completion_response)
-                print("regular response_cost", response_cost)
-                logging.info(f"Model {completion_response.model} Cost: ${response_cost:.8f}")
+        response_cost = kwargs["response_cost"] # litellm calculates response cost for you
+        print("regular response_cost", response_cost)
     except:
         pass
 
-# Assign the custom callback function
+# Step 2. Assign the custom callback function
 litellm.success_callback = [track_cost_callback]
 
+# Step 3. Make litellm.completion call
 response = completion(
     model="gpt-3.5-turbo",
     messages=[

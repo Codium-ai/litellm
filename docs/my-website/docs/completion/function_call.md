@@ -1,18 +1,26 @@
 # Function Calling 
-Function calling is supported with the following models on OpenAI, Azure OpenAI
 
-- gpt-4
-- gpt-4-1106-preview
-- gpt-4-0613
-- gpt-3.5-turbo
-- gpt-3.5-turbo-1106
-- gpt-3.5-turbo-0613
-- Non OpenAI LLMs (litellm adds the function call to the prompt for these llms)
+## Checking if a model supports function calling 
 
-In addition, parallel function calls is supported on the following models:
-- gpt-4-1106-preview
-- gpt-3.5-turbo-1106
+Use `litellm.supports_function_calling(model="")` -> returns `True` if model supports Function calling, `False` if not
 
+```python
+assert litellm.supports_function_calling(model="gpt-3.5-turbo") == True
+assert litellm.supports_function_calling(model="azure/gpt-4-1106-preview") == True
+assert litellm.supports_function_calling(model="palm/chat-bison") == False
+assert litellm.supports_function_calling(model="xai/grok-2-latest") == True
+assert litellm.supports_function_calling(model="ollama/llama2") == False
+```
+
+
+## Checking if a model supports parallel function calling 
+
+Use `litellm.supports_parallel_function_calling(model="")` -> returns `True` if model supports parallel function calling, `False` if not
+
+```python
+assert litellm.supports_parallel_function_calling(model="gpt-4-turbo-preview") == True
+assert litellm.supports_parallel_function_calling(model="gpt-4") == False
+```
 ## Parallel Function calling
 Parallel function calling is the model's ability to perform multiple function calls together, allowing the effects and results of these function calls to be resolved in parallel
 
@@ -495,10 +503,10 @@ response = completion(model="gpt-3.5-turbo-0613", messages=messages, functions=f
 print(response)
 ```
 
-## Function calling for Non-OpenAI LLMs
+## Function calling for Models w/out function-calling support
 
 ### Adding Function to prompt
-For Non OpenAI LLMs LiteLLM allows you to add the function to the prompt set: `litellm.add_function_to_prompt = True`
+For Models/providers without function calling support, LiteLLM allows you to add the function to the prompt set: `litellm.add_function_to_prompt = True`
 
 #### Usage
 ```python
